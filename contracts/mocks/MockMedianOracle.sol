@@ -2,14 +2,14 @@
 pragma solidity ^0.6.6;
 
 import "./SettableOracle.sol";
-import "../USM.sol";
+import "../MedianOracle.sol";
 
 /**
  * @title MockMedianOracleUSM
  * @author Jacob Eliosoff (@jacob-eliosoff)
- * @notice Like USM (so, also inheriting MedianOracle), but allows latestPrice() to be set for testing purposes
+ * @notice MedianOracle, but allows latestPrice() to be set for testing purposes
  */
-contract MockMedianOracleUSM is USM, SettableOracle {
+contract MockMedianOracle is MedianOracle, SettableOracle {
     uint private constant NUM_UNISWAP_PAIRS = 3;
 
     uint private savedPrice;
@@ -19,18 +19,18 @@ contract MockMedianOracleUSM is USM, SettableOracle {
         UniswapAnchoredView compoundView,
         IUniswapV2Pair uniswapPair, uint uniswapToken0Decimals, uint uniswapToken1Decimals, bool uniswapTokensInReverseOrder
     ) public
-        USM(chainlinkAggregator, compoundView,
+        MedianOracle(chainlinkAggregator, compoundView,
             uniswapPair, uniswapToken0Decimals, uniswapToken1Decimals, uniswapTokensInReverseOrder) {}
 
     function setPrice(uint p) public override {
         savedPrice = p;
     }
 
-    function cacheLatestPrice() public override(Oracle, USM) returns (uint price) {
+    function cacheLatestPrice() public override(Oracle, MedianOracle) returns (uint price) {
         price = (savedPrice != 0) ? savedPrice : super.cacheLatestPrice();
     }
 
-    function latestPrice() public override view returns (uint price) {
+    function latestPrice() public override(Oracle, MedianOracle) view returns (uint price) {
         price = (savedPrice != 0) ? savedPrice : super.latestPrice();
     }
 }

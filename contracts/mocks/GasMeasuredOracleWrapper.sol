@@ -2,7 +2,7 @@
 pragma solidity ^0.6.6;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../oracles/Oracle.sol";
+import "../Oracle.sol";
 import "@nomiclabs/buidler/console.sol";
 
 contract GasMeasuredOracleWrapper is Oracle {
