@@ -31,6 +31,10 @@ contract CompoundOpenOracle is Oracle {
         price = latestCompoundPrice();
     }
 
+    /**
+     * @notice Retrieve the latest price of the price oracle, in its original format.
+     * @return price
+     */
     function latestCompoundPrice() public view returns (uint price) {
         price = anchoredView.price("ETH").mul(SCALE_FACTOR);
     }

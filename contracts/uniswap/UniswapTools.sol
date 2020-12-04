@@ -3,13 +3,16 @@ pragma solidity ^0.6.6;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
-
+/**
+ * @dev Tools to interact with Uniswap pairs.
+ */
 library UniswapTools {
     using SafeMath for uint;
 
     // Uniswap stores its cumulative prices in "FixedPoint.uq112x112" format - 112-bit fixed point:
     uint public constant UNISWAP_CUM_PRICE_SCALE_FACTOR = 2 ** 112;
 
+    /// @dev Our internal representation of a Uniswap pair
     struct Pair {
         IUniswapV2Pair uniswapPair;
         uint token0Decimals;
@@ -18,6 +21,7 @@ library UniswapTools {
         uint scaleFactor;
     }
 
+    /// @dev Creates an internal representation of an existing Uniswap pair.
     function createPair(IUniswapV2Pair uniswapPair, uint token0Decimals, uint token1Decimals, bool tokensInReverseOrder)
         internal pure returns (Pair memory pair)
     {
@@ -33,7 +37,7 @@ library UniswapTools {
     }
 
     /**
-     * @return price WAD-formatted - 18 decimal places fixed-point.
+     * @return price spot price WAD-formatted - 18 decimal places fixed-point.
      */
     function spotPrice(Pair storage pair)
         internal view returns (uint price)

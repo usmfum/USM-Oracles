@@ -7,7 +7,9 @@ import "../Oracle.sol";
 import "../uniswap/UniswapTools.sol";
 import "./Median.sol";
 
-
+/**
+ * @dev Return the median spot price from 3 uniswap pairs. Do not use in production.
+ */
 contract UniswapMedianSpotOracle is Oracle {
     using SafeMath for uint;
 
@@ -18,36 +20,34 @@ contract UniswapMedianSpotOracle is Oracle {
     /**
      * See UniswapV2SpotOracle for example pairs to pass in.
      */
-    constructor(IUniswapV2Pair[NUM_SOURCE_ORACLES] memory uniswapPairs,
-                uint[NUM_SOURCE_ORACLES] memory tokens0Decimals,
-                uint[NUM_SOURCE_ORACLES] memory tokens1Decimals,
-                bool[NUM_SOURCE_ORACLES] memory tokensInReverseOrder) public
-    {
+    constructor(
+        IUniswapV2Pair[NUM_SOURCE_ORACLES] memory uniswapPairs,
+        uint[NUM_SOURCE_ORACLES] memory tokens0Decimals,
+        uint[NUM_SOURCE_ORACLES] memory tokens1Decimals,
+        bool[NUM_SOURCE_ORACLES] memory tokensInReverseOrder
+    ) public {
         for (uint i = 0; i < NUM_SOURCE_ORACLES; ++i) {
             pairs[i] = UniswapTools.createPair(uniswapPairs[i], tokens0Decimals[i], tokens1Decimals[i], tokensInReverseOrder[i]);
         }
     }
 
+    /**
+     * @notice Retrieve the latest median spot price of the price oracle.
+     * @return price
+     */
     function latestPrice() public virtual override view returns (uint price) {
-        price = latestUniswapMedianSpotPrice();
+        price = Median.median(
+            UniswapTools.spotPrice(pairs[0]),
+            UniswapTools.spotPrice(pairs[1]),
+            UniswapTools.spotPrice(pairs[2])
+        );
     }
 
-    function latestUniswapMedianSpotPrice() public view returns (uint price) {
-        // For maximum gas efficiency...
-        price = Median.median(UniswapTools.spotPrice(pairs[0]),
-                              UniswapTools.spotPrice(pairs[1]),
-                              UniswapTools.spotPrice(pairs[2]));
-    }
-
-    function latestUniswapPair1SpotPrice() public view returns (uint price) {
-        price = UniswapTools.spotPrice(pairs[0]);
-    }
-
-    function latestUniswapPair2SpotPrice() public view returns (uint price) {
-        price = UniswapTools.spotPrice(pairs[1]);
-    }
-
-    function latestUniswapPair3SpotPrice() public view returns (uint price) {
-        price = UniswapTools.spotPrice(pairs[2]);
+    /**
+     * @notice Retrieve the latest price spot price of an underlying price oracle.
+     * @return price
+     */
+    function latestIndividualPrice(uint i) public view returns (uint price) {
+        price = UniswapTools.spotPrice(pairs[i]);
     }
 }

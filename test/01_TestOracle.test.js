@@ -305,19 +305,19 @@ contract('Oracle pricing', (accounts) => {
     })
 
     it('returns the correct price', async () => {
-      const ethUsdtPrice1 = (await rawOracle.latestUniswapPair1TWAPPrice())
+      const ethUsdtPrice1 = (await rawOracle.latestIndividualTWAPPrice(0))
       const targetEthUsdtPriceNum = (ethUsdtCumPrice0_1.sub(ethUsdtCumPrice0_0)).mul(ethUsdtScaleFactor)
       const targetEthUsdtPriceDenom = (ethUsdtTimestamp_1.sub(ethUsdtTimestamp_0)).mul(uniswapCumPriceScalingFactor)
       const targetEthUsdtPrice1 = targetEthUsdtPriceNum.div(targetEthUsdtPriceDenom)
       shouldEqualApprox(ethUsdtPrice1, targetEthUsdtPrice1)
 
-      const usdcEthPrice1 = (await rawOracle.latestUniswapPair2TWAPPrice())
+      const usdcEthPrice1 = (await rawOracle.latestIndividualTWAPPrice(1))
       const targetUsdcEthPriceNum = (usdcEthCumPrice1_1.sub(usdcEthCumPrice1_0)).mul(usdcEthScaleFactor)
       const targetUsdcEthPriceDenom = (usdcEthTimestamp_1.sub(usdcEthTimestamp_0)).mul(uniswapCumPriceScalingFactor)
       const targetUsdcEthPrice1 = targetUsdcEthPriceNum.div(targetUsdcEthPriceDenom)
       shouldEqualApprox(usdcEthPrice1, targetUsdcEthPrice1)
 
-      const daiEthPrice1 = (await rawOracle.latestUniswapPair3TWAPPrice())
+      const daiEthPrice1 = (await rawOracle.latestIndividualTWAPPrice(2))
       const targetDaiEthPriceNum = (daiEthCumPrice1_1.sub(daiEthCumPrice1_0)).mul(daiEthScaleFactor)
       const targetDaiEthPriceDenom = (daiEthTimestamp_1.sub(daiEthTimestamp_0)).mul(uniswapCumPriceScalingFactor)
       const targetDaiEthPrice1 = targetDaiEthPriceNum.div(targetDaiEthPriceDenom)

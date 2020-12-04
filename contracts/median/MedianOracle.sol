@@ -3,7 +3,9 @@ pragma solidity ^0.6.6;
 import "../Oracle.sol";
 import "./Median.sol";
 
-
+/**
+ * @dev Use 3 oracles and return their median price.
+ */
 contract MedianOracle is Oracle {
 
     Oracle[3] public oracles;
@@ -14,6 +16,10 @@ contract MedianOracle is Oracle {
         oracles = oracles_;
     }
 
+    /**
+     * @notice Retrieve the latest price of the price oracle.
+     * @return price
+     */
     function latestPrice() 
         public virtual override view returns (uint)
     {
@@ -24,6 +30,10 @@ contract MedianOracle is Oracle {
         );
     }
 
+    /**
+     * @notice Store the latest price of the price oracle.
+     * @return price
+     */
     function cacheLatestPrice()
         public virtual override returns (uint)
     {

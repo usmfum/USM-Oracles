@@ -5,7 +5,9 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "../Oracle.sol";
 import "./UniswapTools.sol";
 
-
+/**
+ * @dev Retrieve time weighted average prices from an Unisap pair
+ */
 contract UniswapV2TWAPOracle is Oracle {
     using SafeMath for uint;
 
@@ -49,6 +51,15 @@ contract UniswapV2TWAPOracle is Oracle {
         pair = UniswapTools.createPair(uniswapPair, token0Decimals, token1Decimals, tokensInReverseOrder);
     }
 
+    /**
+     * @notice Retrieve the latest twap price of the price oracle from cached values.
+     * @return price
+     */
+    function latestPrice() public virtual override view returns (uint price) {
+        (, CumulativePrice storage newerStoredPrice) = orderedStoredPrices();
+        (price, , ) = _latestPrice(newerStoredPrice);
+    }
+
     function cacheLatestPrice() public virtual override returns (uint price) {
         (CumulativePrice storage olderStoredPrice, CumulativePrice storage newerStoredPrice) = orderedStoredPrices();
 
@@ -62,15 +73,12 @@ contract UniswapV2TWAPOracle is Oracle {
         }
     }
 
-    function latestPrice() public virtual override view returns (uint price) {
-        price = latestUniswapTWAPPrice();
-    }
-
-    function latestUniswapTWAPPrice() public view returns (uint price) {
-        (, CumulativePrice storage newerStoredPrice) = orderedStoredPrices();
-        (price, , ) = _latestPrice(newerStoredPrice);
-    }
-
+    /**
+     * @notice Calculate a twap price from a new read of the oracle and cached values.
+     * @return price
+     * @return timestamp
+     * @return priceSeconds
+     */
     function _latestPrice(CumulativePrice storage newerStoredPrice)
         internal view returns (uint price, uint timestamp, uint priceSeconds)
     {
@@ -81,6 +89,9 @@ contract UniswapV2TWAPOracle is Oracle {
         price = UniswapTools.calculateTWAP(timestamp, priceSeconds, uint(refPrice.timestamp), uint(refPrice.priceSeconds));
     }
 
+    /**
+     * @notice Store a new cumulative price (timestamp and priceSeconds) overwriting the existing one (olderStoredPrice)
+     */
     function storeCumulativePrice(uint timestamp, uint priceSeconds, CumulativePrice storage olderStoredPrice) internal
     {
         require(timestamp <= UINT32_MAX, "timestamp overflow");
@@ -89,6 +100,21 @@ contract UniswapV2TWAPOracle is Oracle {
         (olderStoredPrice.timestamp, olderStoredPrice.priceSeconds) = (uint32(timestamp), uint224(priceSeconds));
     }
 
+    /**
+     * @notice Return pointers to the stored prices, ordered by age
+     * @return olderStoredPrice
+     * @return newerStoredPrice
+     */
+    function orderedStoredPrices() internal view
+        returns (CumulativePrice storage olderStoredPrice, CumulativePrice storage newerStoredPrice)
+    {
+        (olderStoredPrice, newerStoredPrice) = storedPriceB.timestamp > storedPriceA.timestamp ?
+            (storedPriceA, storedPriceB) : (storedPriceB, storedPriceA);
+    }
+
+    /**
+     * @notice For a given timestamp, return whether we should use the newer or the older stored price
+     */
     function storedPriceToCompareVs(uint newTimestamp, CumulativePrice storage newerStoredPrice)
         internal view returns (CumulativePrice storage refPrice)
     {
@@ -107,13 +133,9 @@ contract UniswapV2TWAPOracle is Oracle {
         }
     }
 
-    function orderedStoredPrices() internal view
-        returns (CumulativePrice storage olderStoredPrice, CumulativePrice storage newerStoredPrice)
-    {
-        (olderStoredPrice, newerStoredPrice) = storedPriceB.timestamp > storedPriceA.timestamp ?
-            (storedPriceA, storedPriceB) : (storedPriceB, storedPriceA);
-    }
-
+    /**
+     * @notice Returns whether it has passed enough time for a stored price to be usable.
+     */
     function areNewAndStoredPriceFarEnoughApart(uint newTimestamp, CumulativePrice storage storedPrice) internal view
         returns (bool farEnough)
     {

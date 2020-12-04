@@ -7,6 +7,9 @@ import "../uniswap/UniswapTools.sol";
 import "./Median.sol";
 
 
+/**
+ * @dev Return the median TWAP price from 3 uniswap pairs.
+ */
 contract UniswapMedianTWAPOracle is Oracle {
     using SafeMath for uint;
 
@@ -43,11 +46,12 @@ contract UniswapMedianTWAPOracle is Oracle {
     /**
      * See UniswapV2SpotOracle for example pairs to pass in
      */
-    constructor(IUniswapV2Pair[NUM_SOURCE_ORACLES] memory uniswapPairs,
-                uint[NUM_SOURCE_ORACLES] memory tokens0Decimals,
-                uint[NUM_SOURCE_ORACLES] memory tokens1Decimals,
-                bool[NUM_SOURCE_ORACLES] memory tokensInReverseOrder) public
-    {
+    constructor(
+        IUniswapV2Pair[NUM_SOURCE_ORACLES] memory uniswapPairs,
+        uint[NUM_SOURCE_ORACLES] memory tokens0Decimals,
+        uint[NUM_SOURCE_ORACLES] memory tokens1Decimals,
+        bool[NUM_SOURCE_ORACLES] memory tokensInReverseOrder
+    ) public {
         for (uint i = 0; i < NUM_SOURCE_ORACLES; ++i) {
             pairs[i] = UniswapTools.createPair(uniswapPairs[i], tokens0Decimals[i], tokens1Decimals[i], tokensInReverseOrder[i]);
         }
@@ -79,22 +83,10 @@ contract UniswapMedianTWAPOracle is Oracle {
         (price, , , ) = latestPrices(newerStoredPrices);
     }
 
-    function latestUniswapPair1TWAPPrice() public view returns (uint price) {
+    function latestIndividualTWAPPrice(uint i) public view returns (uint price) {
         (, CumulativePrices storage newerStoredPrices) = orderedStoredPrices();
         (, uint[NUM_SOURCE_ORACLES] memory prices, , ) = latestPrices(newerStoredPrices);
-        price = prices[0];
-    }
-
-    function latestUniswapPair2TWAPPrice() public view returns (uint price) {
-        (, CumulativePrices storage newerStoredPrices) = orderedStoredPrices();
-        (, uint[NUM_SOURCE_ORACLES] memory prices, , ) = latestPrices(newerStoredPrices);
-        price = prices[1];
-    }
-
-    function latestUniswapPair3TWAPPrice() public view returns (uint price) {
-        (, CumulativePrices storage newerStoredPrices) = orderedStoredPrices();
-        (, uint[NUM_SOURCE_ORACLES] memory prices, , ) = latestPrices(newerStoredPrices);
-        price = prices[2];
+        price = prices[i];
     }
 
     /* ____________________ Internal stateful functions ____________________ */

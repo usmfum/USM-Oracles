@@ -28,6 +28,10 @@ contract ChainlinkOracle is Oracle {
         price = latestChainlinkPrice();
     }
 
+    /**
+     * @notice Retrieve the latest price of the price oracle, in its original format.
+     * @return price
+     */
     function latestChainlinkPrice() public view returns (uint price) {
         (, int rawPrice,,,) = aggregator.latestRoundData();
         price = uint(rawPrice).mul(SCALE_FACTOR); // TODO: Cast safely
