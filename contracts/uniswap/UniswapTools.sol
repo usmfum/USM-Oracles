@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.6;
-
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
-library OurUniswap {
+
+library UniswapTools {
     using SafeMath for uint;
 
     // Uniswap stores its cumulative prices in "FixedPoint.uq112x112" format - 112-bit fixed point:

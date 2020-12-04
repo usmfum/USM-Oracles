@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.6;
-
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
-import "./Oracle.sol";
+import "../Oracle.sol";
+
 
 /**
  * @title ChainlinkOracle

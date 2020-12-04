@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.6;
-
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./Oracle.sol";
-import "./OurUniswap.sol";
+import "../Oracle.sol";
+import "../uniswap/UniswapTools.sol";
 import "./Median.sol";
+
 
 contract UniswapMedianTWAPOracle is Oracle {
     using SafeMath for uint;
 
     // Minimum age of the stored CumulativePrices we calculate our TWAP vs, and minimum gap between stored CumulativePrices.
-    // See also the more detailed explanation in OurUniswapV2TWAPOracle.
+    // See also the more detailed explanation in UniswapV2TWAPOracle.
     uint public constant MIN_TWAP_PERIOD = 2 minutes;
 
     uint private constant WAD = 10 ** 18;
@@ -25,23 +25,23 @@ contract UniswapMedianTWAPOracle is Oracle {
     // Each CumulativePrices struct crams three pairs timestamps and cumulative prices ("price-seconds") into one 256-bit word.
     struct CumulativePrices {
         uint32 timestamp1;
-        uint48 priceSeconds1;   // See OurUniswap.cumulativePrice() for an explanation of "priceSeconds"
+        uint48 priceSeconds1;   // See UniswapTools.cumulativePrice() for an explanation of "priceSeconds"
         uint32 timestamp2;
         uint48 priceSeconds2;
         uint32 timestamp3;
         uint48 priceSeconds3;
     }
 
-    OurUniswap.Pair[NUM_SOURCE_ORACLES] private pairs;
+    UniswapTools.Pair[NUM_SOURCE_ORACLES] private pairs;
 
-    // See comment in OurUniswapV2TWAPOracle for why we store two CumulativePrices rather than one:
+    // See comment in UniswapV2TWAPOracle for why we store two CumulativePrices rather than one:
     CumulativePrices private storedPricesA;
     CumulativePrices private storedPricesB;
 
     /* ____________________ Constructor ____________________ */
 
     /**
-     * See OurUniswapV2SpotOracle for example pairs to pass in
+     * See UniswapV2SpotOracle for example pairs to pass in
      */
     constructor(IUniswapV2Pair[NUM_SOURCE_ORACLES] memory uniswapPairs,
                 uint[NUM_SOURCE_ORACLES] memory tokens0Decimals,
@@ -49,7 +49,7 @@ contract UniswapMedianTWAPOracle is Oracle {
                 bool[NUM_SOURCE_ORACLES] memory tokensInReverseOrder) public
     {
         for (uint i = 0; i < NUM_SOURCE_ORACLES; ++i) {
-            pairs[i] = OurUniswap.createPair(uniswapPairs[i], tokens0Decimals[i], tokens1Decimals[i], tokensInReverseOrder[i]);
+            pairs[i] = UniswapTools.createPair(uniswapPairs[i], tokens0Decimals[i], tokens1Decimals[i], tokensInReverseOrder[i]);
         }
     }
 
@@ -131,7 +131,7 @@ contract UniswapMedianTWAPOracle is Oracle {
                  uint[NUM_SOURCE_ORACLES] memory priceSeconds)
     {
         for (uint i = 0; i < NUM_SOURCE_ORACLES; ++i) {
-            (timestamps[i], priceSeconds[i]) = OurUniswap.cumulativePrice(pairs[i]);
+            (timestamps[i], priceSeconds[i]) = UniswapTools.cumulativePrice(pairs[i]);
         }
 
         CumulativePrices storage refPrices = storedPricesToCompareVs(timestamps, newerStoredPrices);
@@ -139,7 +139,7 @@ contract UniswapMedianTWAPOracle is Oracle {
             unpackStoredPrices(refPrices, priceSeconds);
 
         for (uint i = 0; i < NUM_SOURCE_ORACLES; ++i) {
-            prices[i] = OurUniswap.calculateTWAP(timestamps[i], priceSeconds[i], storedTimestamps[i], storedPriceSeconds[i]);
+            prices[i] = UniswapTools.calculateTWAP(timestamps[i], priceSeconds[i], storedTimestamps[i], storedPriceSeconds[i]);
         }
         medianPrice = Median.median(prices[0], prices[1], prices[2]);
     }
@@ -217,10 +217,10 @@ contract UniswapMedianTWAPOracle is Oracle {
      *
      * Suppose we were storing priceSeconds % (10**6), ie, only the last 6 digits of the cumulative price.  As long as the
      * stored priceSeconds is < 1,000,000, the stored price = the actual price.  But suppose we have a stored priceSeconds of
-     * 998,621, and also see that the latest priceSeconds from Uniswap is 23,000,067.  Then we can infer that the stored
+     * 998,621, and also see that the latest priceSeconds from UniswapTools is 23,000,067.  Then we can infer that the stored
      * 998,621 probably represents 22,998,621, not 998,621.  This is the adjustment we make below.
      *
-     * Of course, we're making an assumption here: that the actual difference between the stored priceSeconds and Uniswap's
+     * Of course, we're making an assumption here: that the actual difference between the stored priceSeconds and UniswapTools's
      * latest priceSeconds will never exceed the max value we can store (999,999 in the intuitive example above, 2**48 - 1 in
      * our actual code below).  This is a reasonable assumption though: a one-month gap between updates, during which ETH was
      * priced at $1,000,000, would still add less than 2**48 to priceSeconds.

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.6;
-
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./Oracle.sol";
-import "./OurUniswap.sol";
+import "../Oracle.sol";
+import "./UniswapTools.sol";
 
-contract OurUniswapV2SpotOracle is Oracle {
+
+contract UniswapV2SpotOracle is Oracle {
     using SafeMath for uint;
 
-    OurUniswap.Pair private pair;
+    UniswapTools.Pair private pair;
 
     /**
      *  Example pairs to pass in:
@@ -19,14 +19,14 @@ contract OurUniswapV2SpotOracle is Oracle {
      */
     constructor(IUniswapV2Pair uniswapPair, uint token0Decimals, uint token1Decimals, bool tokensInReverseOrder) public
     {
-        pair = OurUniswap.createPair(uniswapPair, token0Decimals, token1Decimals, tokensInReverseOrder);
+        pair = UniswapTools.createPair(uniswapPair, token0Decimals, token1Decimals, tokensInReverseOrder);
     }
 
     function latestPrice() public virtual override view returns (uint price) {
-        price = OurUniswap.spotPrice(pair);
+        price = UniswapTools.spotPrice(pair);
     }
 
     function latestUniswapSpotPrice() public view returns (uint price) {
-        price = OurUniswap.spotPrice(pair);
+        price = UniswapTools.spotPrice(pair);
     }
 }

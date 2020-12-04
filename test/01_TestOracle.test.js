@@ -12,8 +12,8 @@ const UniswapAnchoredView = artifacts.require('MockUniswapAnchoredView')
 const CompoundOracle = artifacts.require('CompoundOpenOracle')
 
 const UniswapV2Pair = artifacts.require('MockUniswapV2Pair')
-const UniswapSpotOracle = artifacts.require('OurUniswapV2SpotOracle')
-const UniswapTWAPOracle = artifacts.require('OurUniswapV2TWAPOracle')
+const UniswapSpotOracle = artifacts.require('UniswapV2SpotOracle')
+const UniswapTWAPOracle = artifacts.require('UniswapV2TWAPOracle')
 
 const UniswapMedianSpotOracle = artifacts.require('UniswapMedianSpotOracle')
 const UniswapMedianTWAPOracle = artifacts.require('UniswapMedianTWAPOracle')
@@ -35,13 +35,13 @@ contract('Oracle pricing', (accounts) => {
   const compoundPrice = '414174999'                         // Compound view (UniswapAnchoredView) stores 6 dec places
   const compoundPriceWAD = new BN(compoundPrice + '000000000000') // We want 18 dec places, so add 12 0s
 
-  const ethDecimals = new BN(18)                            // See OurUniswapV2SpotOracle
+  const ethDecimals = new BN(18)                            // See UniswapV2SpotOracle
   const usdtDecimals = new BN(6)
   const usdcDecimals = new BN(6)
   const daiDecimals = new BN(18)
   const uniswapCumPriceScalingFactor = (new BN(2)).pow(new BN(112))
 
-  const ethUsdtReserve0 = new BN('646310144553926227215994') // From the ETH/USDT pair.  See OurUniswapV2SpotOracle
+  const ethUsdtReserve0 = new BN('646310144553926227215994') // From the ETH/USDT pair.  See UniswapV2SpotOracle
   const ethUsdtReserve1 = new BN('254384028636585')
   const ethUsdtCumPrice0_0 = new BN('30197009659458262808281833965635')
   const ethUsdtCumPrice1_0 = new BN('276776388531768266239160661937116320880685460468473')
@@ -175,7 +175,7 @@ contract('Oracle pricing', (accounts) => {
     })
   })
 
-  describe("with OurUniswapV2SpotOracle", () => {
+  describe("with UniswapV2SpotOracle", () => {
     const [deployer] = accounts
     let oracle
     let pair
@@ -200,7 +200,7 @@ contract('Oracle pricing', (accounts) => {
     })
   })
 
-  describe("with OurUniswapV2TWAPOracle", () => {
+  describe("with UniswapV2TWAPOracle", () => {
     const [deployer] = accounts
     let oracle
     let pair
@@ -336,12 +336,9 @@ contract('Oracle pricing', (accounts) => {
   describe("with MedianOracle", () => {
     const [deployer] = accounts
     let rawOracle, oracle
-    let makerMedianizer, chainlinkAggregator, compoundView, usdcEthPair
+    let chainlinkAggregator, compoundView, usdcEthPair
 
     beforeEach(async () => {
-      //makerMedianizer = await Medianizer.new({ from: deployer })
-      //await makerMedianizer.set(makerPriceWAD)
-
       chainlinkAggregator = await Aggregator.new({ from: deployer })
       await chainlinkAggregator.set(chainlinkPrice)
 
@@ -352,19 +349,23 @@ contract('Oracle pricing', (accounts) => {
       await usdcEthPair.setReserves(usdcEthReserve0, usdcEthReserve1, usdcEthTimestamp_0)
       await usdcEthPair.setCumulativePrices(usdcEthCumPrice0_0, usdcEthCumPrice1_0)
 
-      rawOracle = await MedianOracle.new(chainlinkAggregator.address, compoundView.address,
-        usdcEthPair.address, usdcDecimals, ethDecimals, usdcEthTokensInReverseOrder, { from: deployer })
+      rawOracle = await MedianOracle.new(
+        [
+          (await CompoundOracle.new(compoundView.address, { from: deployer })).address,
+          (await ChainlinkOracle.new(chainlinkAggregator.address, { from: deployer })).address,
+          (await UniswapSpotOracle.new(usdcEthPair.address, usdcDecimals, ethDecimals, usdcEthTokensInReverseOrder, { from: deployer })).address
+        ]
+      )
       oracle = await GasMeasuredOracleWrapper.new(rawOracle.address, "median", { from: deployer })
       await oracle.cacheLatestPrice()
 
       await usdcEthPair.setReserves(usdcEthReserve0, usdcEthReserve1, usdcEthTimestamp_1)
       await usdcEthPair.setCumulativePrices(usdcEthCumPrice0_1, usdcEthCumPrice1_1)
-      //await oracle.cacheLatestPrice() // Not actually needed, unless we do further testing moving timestamps further forward
     })
 
     it('returns the correct price', async () => {
       const oraclePrice = (await oracle.latestPrice())
-      const uniswapPrice = (await rawOracle.latestUniswapTWAPPrice())
+      const uniswapPrice = usdcEthReserve0.mul(usdcEthScaleFactor).div(usdcEthReserve1) // reverseOrder = true
       const targetOraclePrice = median(chainlinkPriceWAD, compoundPriceWAD, uniswapPrice)
       oraclePrice.toString().should.equal(targetOraclePrice.toString())
     })

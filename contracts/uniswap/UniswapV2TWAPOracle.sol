@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.6;
-
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./Oracle.sol";
-import "./OurUniswap.sol";
+import "../Oracle.sol";
+import "./UniswapTools.sol";
 
-contract OurUniswapV2TWAPOracle is Oracle {
+
+contract UniswapV2TWAPOracle is Oracle {
     using SafeMath for uint;
 
     /**
@@ -30,10 +30,10 @@ contract OurUniswapV2TWAPOracle is Oracle {
 
     struct CumulativePrice {
         uint32 timestamp;
-        uint224 priceSeconds;   // See OurUniswap.cumulativePrice() for an explanation of "priceSeconds"
+        uint224 priceSeconds;   // See UniswapTools.cumulativePrice() for an explanation of "priceSeconds"
     }
 
-    OurUniswap.Pair private pair;
+    UniswapTools.Pair private pair;
 
     /**
      * We store two CumulativePrices, A and B, without specifying which is more recent.  This is so that we only need to do one
@@ -43,10 +43,10 @@ contract OurUniswapV2TWAPOracle is Oracle {
     CumulativePrice private storedPriceB;
 
     /**
-     * See OurUniswapV2SpotOracle for example pairs to pass in.
+     * See UniswapV2SpotOracle for example pairs to pass in.
      */
     constructor(IUniswapV2Pair uniswapPair, uint token0Decimals, uint token1Decimals, bool tokensInReverseOrder) public {
-        pair = OurUniswap.createPair(uniswapPair, token0Decimals, token1Decimals, tokensInReverseOrder);
+        pair = UniswapTools.createPair(uniswapPair, token0Decimals, token1Decimals, tokensInReverseOrder);
     }
 
     function cacheLatestPrice() public virtual override returns (uint price) {
@@ -74,11 +74,11 @@ contract OurUniswapV2TWAPOracle is Oracle {
     function _latestPrice(CumulativePrice storage newerStoredPrice)
         internal view returns (uint price, uint timestamp, uint priceSeconds)
     {
-        (timestamp, priceSeconds) = OurUniswap.cumulativePrice(pair);
+        (timestamp, priceSeconds) = UniswapTools.cumulativePrice(pair);
 
         // Now that we have the current cum price, subtract-&-divide the stored one, to get the TWAP price:
         CumulativePrice storage refPrice = storedPriceToCompareVs(timestamp, newerStoredPrice);
-        price = OurUniswap.calculateTWAP(timestamp, priceSeconds, uint(refPrice.timestamp), uint(refPrice.priceSeconds));
+        price = UniswapTools.calculateTWAP(timestamp, priceSeconds, uint(refPrice.timestamp), uint(refPrice.priceSeconds));
     }
 
     function storeCumulativePrice(uint timestamp, uint priceSeconds, CumulativePrice storage olderStoredPrice) internal
